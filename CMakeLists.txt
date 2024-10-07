@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.12)
+set(CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc")
 project(cudaTest LANGUAGES CXX CUDA)
 
-set(CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc")
 # SET(CUDA_NVCC_FLAGS "-arch=sm_75" CACHE STRING "nvcc flags" FORCE)
 # set(CMAKE_CUDA_ARCHITECTURES 75)
 enable_language(CUDA)

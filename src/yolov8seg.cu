@@ -339,7 +339,9 @@ std::vector<Detection> YoloV8Detector::runDetection(cv::Mat &image)
                                  std::string(cudaGetErrorString(ret)));
     }
 
-    std::vector<std::vector<Detection>> classDetections(numClasses_);
+    std::vector<std::vector<cv::Rect>> classDetections(numClasses_);
+    std::vector<std::vector<float>> classScores(numClasses_);
+    std::vector<std::vector<int>> iValues(numClasses_);
     std::vector<Detection> detections;
     for (int i = 0; i < 8400; i++)
     {
@@ -366,23 +368,39 @@ std::vector<Detection> YoloV8Detector::runDetection(cv::Mat &image)
             cv::Rect bbox = cv::Rect(normBbox[0] - normBbox[2] / 2,
                                      normBbox[1] - normBbox[3] / 2, normBbox[2],
                                      normBbox[3]);
-            iou(classDetections, bbox, classId, maxConf, i);
+            classDetections[classId].push_back(bbox);
+            classScores[classId].push_back(maxConf);
+            iValues[classId].push_back(i);
+        }
+    }
+
+    for (int i = 0; i < numClasses_; i++)
+    {
+        std::vector<int> indices;
+        cv::dnn::NMSBoxes(classDetections[i], classScores[i], confThreshold_, iouThreshold_, indices);
+        for (int index : indices)
+        {
+            for (int j = 0; j < 32; j++)
+            {
+                cudaMemcpy(maskWeights + j, output0Copy + (iValues[i][index] + (4 + numClasses_ + j) * 8400), sizeof(float), cudaMemcpyHostToDevice);
+            }
+            detections.push_back(Detection(i, classScores[i][index], classDetections[i][index], calculateMask(maskWeights)));
         }
     }
 
     auto postProcess = high_resolution_clock::now();
 
-    printf("Enqueue time: %f\n", (float)duration_cast<nanoseconds>(enqueued - start).count() / 1e6);
-    printf("output0 memcpy time: %f\n", (float)duration_cast<nanoseconds>(output0Memcpy - enqueued).count() / 1e6);
-    printf("postprocess time: %f\n", (float)duration_cast<nanoseconds>(postProcess - output0Memcpy).count() / 1e6);
+    // printf("Enqueue time: %f\n", (float)duration_cast<nanoseconds>(enqueued - start).count() / 1e6);
+    // printf("output0 memcpy time: %f\n", (float)duration_cast<nanoseconds>(output0Memcpy - enqueued).count() / 1e6);
+    // printf("postprocess time: %f\n", (float)duration_cast<nanoseconds>(postProcess - output0Memcpy).count() / 1e6);
 
-    for (auto classDets : classDetections)
-    {
-        for (auto detection : classDets)
-        {
-            detections.push_back(detection);
-        }
-    }
+    // for (auto classDets : classDetections)
+    // {
+    //     for (auto detection : classDets)
+    //     {
+    //         detections.push_back(detection);
+    //     }
+    // }
 
     return detections;
 }
@@ -430,6 +448,7 @@ void YoloV8Detector::iou(std::vector<std::vector<Detection>> &detections, cv::Re
             {
                 changed = true;
             }
+            break;
         }
     }
     if (!changed)
