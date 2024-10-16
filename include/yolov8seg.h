@@ -52,5 +52,5 @@ class YoloV8Detector {
     void iou(std::vector<std::vector<Detection>> &detections, cv::Rect newBbox, int classId, float conf, int iVal);
 
     // Must be gpu pointers
-    cv::Mat calculateMask(float *weights);
+    cv::Mat calculateMask(int iVal);
 };

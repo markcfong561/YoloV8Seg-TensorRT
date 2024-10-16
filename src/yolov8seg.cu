@@ -405,62 +405,6 @@ std::vector<Detection> YoloV8Detector::runDetection(cv::Mat &image)
     return detections;
 }
 
-void YoloV8Detector::iou(std::vector<std::vector<Detection>> &detections, cv::Rect newBbox, int classId, float conf, int iVal)
-{
-    bool changed = false;
-    std::vector<Detection> &classDetections = detections[classId];
-    printf("Class detections size: %d\n", classDetections.size());
-
-    for (int i = 0; i < classDetections.size(); i++)
-    {
-        float area1 = classDetections[i].bbox().width * classDetections[i].bbox().height;
-        float area2 = newBbox.width * newBbox.height;
-
-        /* If points are (x1, y1) (a1, b1) and (x2, y2) (a2, b2)
-           Then the intersection width would be the furthest left "right edge"
-           minus the furthest right "left edge"
-        */
-        float xx = std::min<float>(classDetections[i].bbox().x - (classDetections[i].bbox().width / 2), newBbox.x - (newBbox.width / 2));
-        float yy = std::max<float>(classDetections[i].bbox().y - (classDetections[i].bbox().height / 2), newBbox.y - (newBbox.height / 2));
-        float aa = std::min<float>(classDetections[i].bbox().x + (classDetections[i].bbox().width / 2), newBbox.x + (classDetections[i].bbox().width / 2));
-        float bb = std::min<float>(classDetections[i].bbox().y + (classDetections[i].bbox().height / 2), newBbox.y + (classDetections[i].bbox().height / 2));
-
-        float intersectionWidth = std::max<float>(0, (aa - xx));
-        float intersectionHeight = std::max<float>(0, (bb - yy));
-
-        float intersectionArea = intersectionWidth * intersectionHeight;
-
-        float unionArea = area1 + area2 - intersectionArea;
-        float iou = intersectionArea / unionArea;
-
-        if (iou > iouThreshold_)
-        {
-            if (classDetections[i].confidence() < conf)
-            {
-                for (int j = 0; j < 32; j++)
-                {
-                    cudaMemcpy(maskWeights + j, output0Copy + (iVal + (4 + numClasses_ + j) * 8400), sizeof(float), cudaMemcpyHostToDevice);
-                }
-                classDetections[i] = Detection(classId, conf, newBbox, calculateMask(maskWeights));
-                changed = true;
-            }
-            else
-            {
-                changed = true;
-            }
-            break;
-        }
-    }
-    if (!changed)
-    {
-        for (int i = 0; i < 32; i++)
-        {
-            cudaMemcpy(maskWeights + i, output0Copy + (iVal + (4 + numClasses_ + i) * 8400), sizeof(float), cudaMemcpyHostToDevice);
-        }
-        classDetections.push_back(Detection(classId, conf, newBbox, calculateMask(maskWeights)));
-    }
-}
-
 cv::Mat YoloV8Detector::calculateMask(float *maskWeights)
 {
     unsigned int gridRows = (1 + BLOCK_SIZE - 1) / BLOCK_SIZE;
