@@ -38,6 +38,8 @@ class YoloV8Detector {
 
     ~YoloV8Detector();
 
+    int numClasses();
+
     std::vector<Detection> runDetection(cv::Mat &image);
 
    private:

@@ -45,7 +45,7 @@ cv::Rect Detection::bbox() { return boundingBox_; }
 
 cv::Mat Detection::mask() { return mask_; }
 
-// extern void processDets(float *output0, float *output1, float *detections, int *numDets, int numClasses, float confThresh, float iouThresh);
+int YoloV8Detector::numClasses() { return numClasses_; }
 
 YoloV8Detector::YoloV8Detector(std::string filepath,
                                float conf_threshold,
