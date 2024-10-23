@@ -314,13 +314,13 @@ std::vector<Detection> YoloV8Detector::runDetection(cv::Mat &image)
 
     if (image.cols > image.rows)
     {
-        aspectRatio = image.rows / image.cols;
+        aspectRatio = image.cols / image.rows;
         sizeRatio = image.cols / 640;
         widthLarger = true;
     }
     else
     {
-        aspectRatio = image.cols / image.rows;
+        aspectRatio = image.rows / image.cols;
         sizeRatio = image.rows / 640;
     }
     cv::Size newSize;
@@ -333,7 +333,7 @@ std::vector<Detection> YoloV8Detector::runDetection(cv::Mat &image)
         newSize = cv::Size(640 * aspectRatio, 640);
     }
 
-    cv::resize(image, resized, newSize);
+    cv::resize(image, resized, newSize, 0, 0, cv::INTER_LINEAR);
     if (widthLarger)
     {
         cv::copyMakeBorder(resized, preprocessed, (640 - resized.rows) / 2, (640 - resized.rows) / 2, 0, 0, cv::BORDER_CONSTANT, cv::Scalar(0, 0, 0));
