@@ -13,7 +13,7 @@
 
 #define BLOCK_SIZE 32
 
-__global__ void gpu_matrix_mult(float *a, float *b, float *c, int m, int n, int k)
+__global__ void gpu_matrix_mult(float *a, float *b, float *c, int m, int n, int k, int iVal, int numClasses)
 {
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     int col = blockIdx.x * blockDim.x + threadIdx.x;
@@ -22,7 +22,7 @@ __global__ void gpu_matrix_mult(float *a, float *b, float *c, int m, int n, int 
     {
         for (int i = 0; i < n; i++)
         {
-            sum += a[row * n + i] * b[i * k + col];
+            sum += a[iVal  + (4 + numClasses + row) * 8400] * b[i * k + col];
         }
         c[row * k + col] = sum;
     }
@@ -380,11 +380,11 @@ std::vector<Detection> YoloV8Detector::runDetection(cv::Mat &image)
         cv::dnn::NMSBoxes(classDetections[i], classScores[i], confThreshold_, iouThreshold_, indices);
         for (int index : indices)
         {
-            for (int j = 0; j < 32; j++)
-            {
-                cudaMemcpy(maskWeights + j, output0Copy + (iValues[i][index] + (4 + numClasses_ + j) * 8400), sizeof(float), cudaMemcpyHostToDevice);
-            }
-            detections.push_back(Detection(i, classScores[i][index], classDetections[i][index], calculateMask(maskWeights)));
+            // for (int j = 0; j < 32; j++)
+            // {
+            //     cudaMemcpy(maskWeights + j, output0Copy + (iValues[i][index] + (4 + numClasses_ + j) * 8400), sizeof(float), cudaMemcpyHostToDevice);
+            // }
+            detections.push_back(Detection(i, classScores[i][index], classDetections[i][index], calculateMask(iValues[i][index])));
         }
     }
 
@@ -405,13 +405,13 @@ std::vector<Detection> YoloV8Detector::runDetection(cv::Mat &image)
     return detections;
 }
 
-cv::Mat YoloV8Detector::calculateMask(float *maskWeights)
+cv::Mat YoloV8Detector::calculateMask(int iVal)
 {
     unsigned int gridRows = (1 + BLOCK_SIZE - 1) / BLOCK_SIZE;
     unsigned int gridCols = (160 * 160 + BLOCK_SIZE - 1) / BLOCK_SIZE;
     dim3 dimGrid(gridCols, gridRows);
     dim3 dimBlock(BLOCK_SIZE, BLOCK_SIZE);
-    gpu_matrix_mult<<<dimGrid, dimBlock>>>(maskWeights, output1, mask, 1, 32, 160 * 160);
+    gpu_matrix_mult<<<dimGrid, dimBlock>>>(output0, output1, mask, 1, 32, 160 * 160, iVal, numClasses_);
     cudaDeviceSynchronize();
     cv::Mat cpuMask(160, 160, CV_32FC1);
 
