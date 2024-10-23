@@ -10,6 +10,7 @@
 
 #include <opencv2/highgui.hpp>
 #include <opencv2/dnn.hpp>
+#include <opencv2/imgproc.hpp>
 
 #define BLOCK_SIZE 32
 
@@ -305,7 +306,44 @@ YoloV8Detector::~YoloV8Detector()
 std::vector<Detection> YoloV8Detector::runDetection(cv::Mat &image)
 {
     using namespace std::chrono;
-    cv::Mat blob = cv::dnn::blobFromImage(image);
+
+    cv::Mat resized, preprocessed;
+
+    float aspectRatio, sizeRatio;
+    bool widthLarger = false;
+
+    if (image.cols > image.rows)
+    {
+        aspectRatio = image.rows / image.cols;
+        sizeRatio = image.cols / 640;
+        widthLarger = true;
+    }
+    else
+    {
+        aspectRatio = image.cols / image.rows;
+        sizeRatio = image.rows / 640;
+    }
+    cv::Size newSize;
+    if (widthLarger)
+    {
+        newSize = cv::Size(640, 640 * aspectRatio);
+    }
+    else
+    {
+        newSize = cv::Size(640 * aspectRatio, 640);
+    }
+
+    cv::resize(image, resized, newSize);
+    if (widthLarger)
+    {
+        cv::copyMakeBorder(resized, preprocessed, (640 - resized.rows) / 2, (640 - resized.rows) / 2, 0, 0, cv::BORDER_CONSTANT, cv::Scalar(0, 0, 0));
+    }
+    else
+    {
+        cv::copyMakeBorder(resized, preprocessed, 0, 0, (640 - resized.cols) / 2, (640 - resized.cols) / 2, cv::BORDER_CONSTANT, cv::Scalar(0, 0, 0));
+    }
+
+    cv::Mat blob = cv::dnn::blobFromImage(resized);
     auto start = high_resolution_clock::now();
     cudaError_t ret = cudaMemcpy(input, blob.data, 640 * 640 * 3 * sizeof(float), cudaMemcpyHostToDevice);
     auto firstMemcpy = high_resolution_clock::now();
@@ -361,10 +399,10 @@ std::vector<Detection> YoloV8Detector::runDetection(cv::Mat &image)
         {
             // printf("%f\n", )
             float normBbox[4];
-            normBbox[0] = output0Copy[i];
-            normBbox[1] = output0Copy[i + 8400];
-            normBbox[2] = output0Copy[i + 2 * 8400];
-            normBbox[3] = output0Copy[i + 3 * 8400];
+            normBbox[0] = output0Copy[i] * sizeRatio;
+            normBbox[1] = output0Copy[i + 8400] * sizeRatio;
+            normBbox[2] = output0Copy[i + 2 * 8400] * sizeRatio;
+            normBbox[3] = output0Copy[i + 3 * 8400] * sizeRatio;
             cv::Rect bbox = cv::Rect(normBbox[0] - normBbox[2] / 2,
                                      normBbox[1] - normBbox[3] / 2, normBbox[2],
                                      normBbox[3]);
