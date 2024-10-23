@@ -22,7 +22,7 @@ __global__ void gpu_matrix_mult(float *a, float *b, float *c, int m, int n, int 
     {
         for (int i = 0; i < n; i++)
         {
-            sum += a[iVal  + (4 + numClasses + row) * 8400] * b[i * k + col];
+            sum += a[iVal + (4 + numClasses + i) * 8400] * b[i * k + col];
         }
         c[row * k + col] = sum;
     }

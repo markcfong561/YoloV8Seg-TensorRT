@@ -19,3 +19,6 @@ target_include_directories(yolov8seg-tensorrt PUBLIC
     $<INSTALL_INTERFACE:include>
     ${TensorRT_INCLUDE_DIR}
 )
+
+# add_executable(cuda src/testCuda.cpp)
+# target_link_libraries(cuda yolov8seg-tensorrt)
