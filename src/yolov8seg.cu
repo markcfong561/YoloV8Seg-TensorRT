@@ -309,41 +309,48 @@ std::vector<Detection> YoloV8Detector::runDetection(cv::Mat &image)
 
     cv::Mat resized, preprocessed;
 
-    float aspectRatio, sizeRatio;
+    float aspectRatio, colRatio, rowRatio;
+    int topBorder, sideBorder;
     bool widthLarger = false;
 
     if (image.cols > image.rows)
     {
-        aspectRatio = image.cols / image.rows;
-        sizeRatio = image.cols / 640;
+        aspectRatio = (float)image.rows / image.cols;
         widthLarger = true;
     }
     else
     {
-        aspectRatio = image.rows / image.cols;
-        sizeRatio = image.rows / 640;
+        aspectRatio = (float)image.cols / image.rows;
     }
+
     cv::Size newSize;
     if (widthLarger)
     {
         newSize = cv::Size(640, 640 * aspectRatio);
+        topBorder = (640. - newSize.height) / 2;
+        sideBorder = 0;
+        colRatio = (float)image.cols / 640.;
+        rowRatio = (float)image.rows / 640. / aspectRatio;
     }
     else
     {
         newSize = cv::Size(640 * aspectRatio, 640);
+        topBorder = 0;
+        sideBorder = (640. - newSize.width) / 2;
+        colRatio = (float)image.cols / 640. / aspectRatio;
+        rowRatio = (float)image.rows / 640.;
     }
 
     cv::resize(image, resized, newSize, 0, 0, cv::INTER_LINEAR);
-    if (widthLarger)
-    {
-        cv::copyMakeBorder(resized, preprocessed, (640 - resized.rows) / 2, (640 - resized.rows) / 2, 0, 0, cv::BORDER_CONSTANT, cv::Scalar(0, 0, 0));
-    }
-    else
-    {
-        cv::copyMakeBorder(resized, preprocessed, 0, 0, (640 - resized.cols) / 2, (640 - resized.cols) / 2, cv::BORDER_CONSTANT, cv::Scalar(0, 0, 0));
-    }
+    cv::copyMakeBorder(resized, preprocessed, topBorder, topBorder, sideBorder, sideBorder, cv::BORDER_CONSTANT, cv::Scalar(0, 0, 0));
 
-    cv::Mat blob = cv::dnn::blobFromImage(resized);
+    preprocessed.convertTo(preprocessed, CV_32FC3);
+    preprocessed /= 255.;
+    // cv::imshow("preprocessed", preprocessed);
+    // cv::waitKey(0);
+    printf("preprocessed size: %d %d\n", preprocessed.rows, preprocessed.cols);
+
+    cv::Mat blob = cv::dnn::blobFromImage(preprocessed);
     auto start = high_resolution_clock::now();
     cudaError_t ret = cudaMemcpy(input, blob.data, 640 * 640 * 3 * sizeof(float), cudaMemcpyHostToDevice);
     auto firstMemcpy = high_resolution_clock::now();
@@ -399,10 +406,10 @@ std::vector<Detection> YoloV8Detector::runDetection(cv::Mat &image)
         {
             // printf("%f\n", )
             float normBbox[4];
-            normBbox[0] = output0Copy[i] * sizeRatio;
-            normBbox[1] = output0Copy[i + 8400] * sizeRatio;
-            normBbox[2] = output0Copy[i + 2 * 8400] * sizeRatio;
-            normBbox[3] = output0Copy[i + 3 * 8400] * sizeRatio;
+            normBbox[0] = output0Copy[i] * colRatio - sideBorder * 2;
+            normBbox[1] = output0Copy[i + 8400] * rowRatio - topBorder * 2;
+            normBbox[2] = output0Copy[i + 2 * 8400] * colRatio;
+            normBbox[3] = output0Copy[i + 3 * 8400] * rowRatio;
             cv::Rect bbox = cv::Rect(normBbox[0] - normBbox[2] / 2,
                                      normBbox[1] - normBbox[3] / 2, normBbox[2],
                                      normBbox[3]);

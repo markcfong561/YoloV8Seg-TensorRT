@@ -14,36 +14,37 @@
 
 int main(int argc, char *argv[])
 {
-    auto detector = YoloV8Detector("/home/markc/Downloads/yolov8n-seg.trt", 0.2, 0.8);
+    auto detector = YoloV8Detector("/home/markc/Downloads/yolov8n-seg.trt", 0.4, 0.8);
 
-    cv::Mat image = cv::imread("/home/markc/Downloads/dog.png", cv::IMREAD_UNCHANGED);
-    cv::Mat convertedImage, floatImage;
-    cv::cvtColor(image, convertedImage, cv::COLOR_BGR2RGB);
+    cv::Mat image = cv::imread("/home/markc/Downloads/testIm.png", cv::IMREAD_UNCHANGED);
+    // cv::Mat convertedImage, floatImage;
+    // cv::cvtColor(image, convertedImage, cv::COLOR_BGR2RGB);
 
     // cv::imshow("window", convertedImage);
     // cv::waitKey(0);
 
     // image = image.t();
 
-    convertedImage.convertTo(floatImage, CV_32FC3);
-    floatImage /= 255.0;
+    // convertedImage.convertTo(floatImage, CV_32FC3);
+    // floatImage /= 255.0;
 
-    detector.runDetection(floatImage);
+    detector.runDetection(image);
 
     std::chrono::time_point start = std::chrono::high_resolution_clock::now();
 
     // for (int i = 0; i < 100; i++)
     // {
-    auto detections = detector.runDetection(floatImage);
+    auto detections = detector.runDetection(image);
 
     for (auto detection : detections)
     {
         cv::rectangle(image, detection.bbox(), cv::Scalar(255, 0, 0));
+        printf("Class id: %d\n", detection.classId());
         // printf("Shape: %d %d\n", detection.mask().cols, detection.mask().rows);
-        cv::Mat resizedMask;
-        cv::resize(detection.mask(), resizedMask, cv::Size(640, 640));
-        cv::imshow("window", resizedMask);
-        cv::waitKey(0);
+        // cv::Mat resizedMask;
+        // cv::resize(detection.mask(), resizedMask, cv::Size(640, 640));
+        // cv::imshow("window", resizedMask);
+        // cv::waitKey(0);
     }
     printf("Size: %d\n", detections.size());
     cv::imshow("window", image);
