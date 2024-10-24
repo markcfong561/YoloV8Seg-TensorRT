@@ -39,8 +39,10 @@ int main(int argc, char *argv[])
     for (auto detection : detections)
     {
         cv::rectangle(image, detection.bbox(), cv::Scalar(255, 0, 0));
-        printf("Class id: %d\n", detection.classId());
-        // cv::addWeighted(image, 0.7, detection.mask(), 0.3, 0, image);
+        // printf("Class id: %d\n", detection.classId());
+        printf("Mask type: %d\n", detection.mask().type());
+        // printf("Imagfe type: %d\n", image.type());
+        cv::addWeighted(image, 0.9, detection.mask() * 255, 0.1, 0, image);
         // printf("Shape: %d %d\n", detection.mask().cols, detection.mask().rows);
         // cv::Mat resizedMask;
         // cv::resize(detection.mask(), resizedMask, cv::Size(640, 640));
