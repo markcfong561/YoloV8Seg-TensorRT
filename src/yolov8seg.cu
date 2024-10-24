@@ -425,7 +425,7 @@ std::vector<Detection> YoloV8Detector::runDetection(cv::Mat &image)
         cv::dnn::NMSBoxes(classDetections[i], classScores[i], confThreshold_, iouThreshold_, indices);
         for (int index : indices)
         {
-            cv::Mat croppedMask = cv::Mat::zeros(preprocessed.size(), CV_32FC1);
+            cv::Mat croppedMask = cv::Mat::zeros(image.size(), CV_32FC1);
             cv::Mat mask = calculateMask(iValues[i][index]);
             if (widthLarger)
             {
@@ -435,10 +435,14 @@ std::vector<Detection> YoloV8Detector::runDetection(cv::Mat &image)
             {
                 cv::resize(mask, mask, cv::Size(image.rows, image.rows));
             }
-            croppedMask(classDetections[i][index]) = mask(cv::Rect(classDetections[i][index].x - sideBorder, classDetections[i][index].y - topBorder, classDetections[i][index].width, classDetections[i][index].height));
-            croppedMask.convertTo(croppedMask, CV_8UC1);
-            cv::cvtColor(croppedMask, croppedMask, cv::COLOR_GRAY2BGR);
-            detections.push_back(Detection(i, classScores[i][index], classDetections[i][index], croppedMask));
+            // printf("Bbox rect: %d %d %d %d\n", classDetections[i][index].x, classDetections[i][index].y, classDetections[i][index].width, classDetections[i][index].height);
+            // printf("mask rect: %d %d %d %d\n", classDetections[i][index].x + sideBorder, classDetections[i][index].y + topBorder, classDetections[i][index].width, classDetections[i][index].height);
+            // croppedMask(classDetections[i][index]) = mask(cv::Rect(classDetections[i][index].x + sideBorder, classDetections[i][index].y + topBorder, classDetections[i][index].width, classDetections[i][index].height));
+            // printf("Converting\n");
+            // // croppedMask.convertTo(croppedMask, CV_8UC1);
+            // croppedMask *= 255;
+            // cv::cvtColor(croppedMask, croppedMask, cv::COLOR_GRAY2BGR);
+            detections.push_back(Detection(i, classScores[i][index], classDetections[i][index], mask));
         }
     }
 

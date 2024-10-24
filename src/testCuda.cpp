@@ -40,11 +40,12 @@ int main(int argc, char *argv[])
     {
         cv::rectangle(image, detection.bbox(), cv::Scalar(255, 0, 0));
         printf("Class id: %d\n", detection.classId());
+        // cv::addWeighted(image, 0.7, detection.mask(), 0.3, 0, image);
         // printf("Shape: %d %d\n", detection.mask().cols, detection.mask().rows);
         // cv::Mat resizedMask;
         // cv::resize(detection.mask(), resizedMask, cv::Size(640, 640));
-        // cv::imshow("window", resizedMask);
-        // cv::waitKey(0);
+        cv::imshow("window", detection.mask());
+        cv::waitKey(0);
     }
     printf("Size: %d\n", detections.size());
     cv::imshow("window", image);
