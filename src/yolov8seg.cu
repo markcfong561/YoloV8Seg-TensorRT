@@ -425,11 +425,20 @@ std::vector<Detection> YoloV8Detector::runDetection(cv::Mat &image)
         cv::dnn::NMSBoxes(classDetections[i], classScores[i], confThreshold_, iouThreshold_, indices);
         for (int index : indices)
         {
-            // for (int j = 0; j < 32; j++)
-            // {
-            //     cudaMemcpy(maskWeights + j, output0Copy + (iValues[i][index] + (4 + numClasses_ + j) * 8400), sizeof(float), cudaMemcpyHostToDevice);
-            // }
-            detections.push_back(Detection(i, classScores[i][index], classDetections[i][index], calculateMask(iValues[i][index])));
+            cv::Mat croppedMask = cv::Mat::zeros(preprocessed.size(), CV_32FC1);
+            cv::Mat mask = calculateMask(iValues[i][index]);
+            if (widthLarger)
+            {
+                cv::resize(mask, mask, cv::Size(image.cols, image.cols));
+            }
+            else
+            {
+                cv::resize(mask, mask, cv::Size(image.rows, image.rows));
+            }
+            croppedMask(classDetections[i][index]) = mask(cv::Rect(classDetections[i][index].x - sideBorder, classDetections[i][index].y - topBorder, classDetections[i][index].width, classDetections[i][index].height));
+            croppedMask.convertTo(croppedMask, CV_8UC1);
+            cv::cvtColor(croppedMask, croppedMask, cv::COLOR_GRAY2BGR);
+            detections.push_back(Detection(i, classScores[i][index], classDetections[i][index], croppedMask));
         }
     }
 
