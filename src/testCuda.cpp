@@ -14,7 +14,7 @@
 
 int main(int argc, char *argv[])
 {
-    auto detector = YoloV8Detector("/home/markc/Downloads/yolov8n-seg.trt", 0.4, 0.8);
+    auto detector = YoloV8Detector("/home/markc/Downloads/yolov8n-seg.trt", 0.6, 0.6);
 
     cv::Mat image = cv::imread("/home/markc/Downloads/testIm.png", cv::IMREAD_UNCHANGED);
     // cv::Mat convertedImage, floatImage;

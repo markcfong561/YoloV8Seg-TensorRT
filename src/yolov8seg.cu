@@ -425,27 +425,34 @@ std::vector<Detection> YoloV8Detector::runDetection(cv::Mat &image)
         cv::dnn::NMSBoxes(classDetections[i], classScores[i], confThreshold_, iouThreshold_, indices);
         for (int index : indices)
         {
-            cv::Mat mask = calculateMask(iValues[i][index]);
-            cv::Mat croppedMask = cv::Mat::zeros(image.size(), mask.type());
+            cv::Mat calculatedMask = calculateMask(iValues[i][index]);
+            cv::Mat croppedMask = cv::Mat::zeros(image.size(), calculatedMask.type());
             if (widthLarger)
             {
-                cv::resize(mask, mask, cv::Size(image.cols, image.cols));
+                cv::resize(calculatedMask, calculatedMask, cv::Size(image.cols, image.cols));
             }
             else
             {
-                cv::resize(mask, mask, cv::Size(image.rows, image.rows));
+                cv::resize(calculatedMask, calculatedMask, cv::Size(image.rows, image.rows));
             }
             // printf("Bbox rect: %d %d %d %d\n", classDetections[i][index].x, classDetections[i][index].y, classDetections[i][index].width, classDetections[i][index].height);
             // printf("mask rect: %d %d %d %d\n", classDetections[i][index].x + sideBorder, classDetections[i][index].y + topBorder, classDetections[i][index].width, classDetections[i][index].height);
-            mask(cv::Rect(classDetections[i][index].x + sideBorder * 2, classDetections[i][index].y + topBorder * 2, classDetections[i][index].width, classDetections[i][index].height)).copyTo(croppedMask(classDetections[i][index]));
-            // mask = mask(cv::Rect(classDetections[i][index].x + sideBorder, classDetections[i][index].y + topBorder, classDetections[i][index].width, classDetections[i][index].height));
-            // printf("Converting\n");
-            // croppedMask *= 255;
-            cv::cvtColor(croppedMask * 255, croppedMask, cv::COLOR_GRAY2BGR);
-            croppedMask.convertTo(croppedMask, CV_8UC3);
+            cv::Rect detectionRect = cv::Rect(classDetections[i][index].x + sideBorder * 2, classDetections[i][index].y + topBorder * 2, classDetections[i][index].width, classDetections[i][index].height) & cv::Rect(0, 0, image.cols, image.rows);
+            cv::Rect croppedRect = cv::Rect(classDetections[i][index].x, classDetections[i][index].y, detectionRect.width, detectionRect.height);
+            classDetections[i][index] = croppedRect;
+            cv::Mat roi = cv::Mat::zeros(calculatedMask.size(), calculatedMask.type());
+            cv::rectangle(roi, detectionRect, cv::Scalar(1), -1);
+
+            calculatedMask.setTo(cv::Scalar(0), roi != 1);
+
+            calculatedMask = calculatedMask(cv::Rect(sideBorder, topBorder * 2, image.cols, image.rows));
+
+            // croppedMask(classDetections[i][index]) = calculatedMask(detectionRect);
+            cv::cvtColor(calculatedMask, calculatedMask, cv::COLOR_GRAY2BGR);
+            calculatedMask.convertTo(calculatedMask, CV_8UC3);
             // cv::imshow("window", croppedMask);
             // cv::waitKey(0);
-            detections.push_back(Detection(i, classScores[i][index], classDetections[i][index], croppedMask));
+            detections.push_back(Detection(i, classScores[i][index], classDetections[i][index], calculatedMask));
         }
     }
 
