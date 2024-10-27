@@ -448,7 +448,7 @@ std::vector<Detection> YoloV8Detector::runDetection(cv::Mat &image)
             calculatedMask = calculatedMask(cv::Rect(sideBorder, topBorder * 2, image.cols, image.rows));
 
             // croppedMask(classDetections[i][index]) = calculatedMask(detectionRect);
-            cv::cvtColor(calculatedMask, calculatedMask, cv::COLOR_GRAY2BGR);
+            cv::cvtColor(calculatedMask * 255, calculatedMask, cv::COLOR_GRAY2BGR);
             calculatedMask.convertTo(calculatedMask, CV_8UC3);
             // cv::imshow("window", croppedMask);
             // cv::waitKey(0);
