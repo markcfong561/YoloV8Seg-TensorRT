@@ -327,19 +327,17 @@ std::vector<Detection> YoloV8Detector::runDetection(cv::Mat &image)
     if (widthLarger)
     {
         newSize = cv::Size(640, 640 * aspectRatio);
-        topBorder = (640. - newSize.height) / 2;
+        topBorder = (float) (640. - newSize.height) / 2;
         sideBorder = 0;
-        colRatio = (float)image.cols / 640.;
-        rowRatio = (float)image.rows / 640. / aspectRatio;
     }
     else
     {
         newSize = cv::Size(640 * aspectRatio, 640);
         topBorder = 0;
-        sideBorder = (640. - newSize.width) / 2;
-        colRatio = (float)image.cols / 640. / aspectRatio;
-        rowRatio = (float)image.rows / 640.;
+        sideBorder = (float) (640. - newSize.width) / 2;
     }
+    colRatio = (float)image.cols / newSize.width;
+    rowRatio = (float)image.rows / newSize.height;
 
     cv::resize(image, resized, newSize, 0, 0, cv::INTER_LINEAR);
     cv::copyMakeBorder(resized, preprocessed, topBorder, topBorder, sideBorder, sideBorder, cv::BORDER_CONSTANT, cv::Scalar(0, 0, 0));
@@ -406,8 +404,8 @@ std::vector<Detection> YoloV8Detector::runDetection(cv::Mat &image)
         {
             // printf("%f\n", )
             float normBbox[4];
-            normBbox[0] = output0Copy[i] * colRatio - sideBorder * 2;
-            normBbox[1] = output0Copy[i + 8400] * rowRatio - topBorder * 2;
+            normBbox[0] = (output0Copy[i] - sideBorder) * colRatio;
+            normBbox[1] = (output0Copy[i + 8400] - topBorder) * rowRatio;
             normBbox[2] = output0Copy[i + 2 * 8400] * colRatio;
             normBbox[3] = output0Copy[i + 3 * 8400] * rowRatio;
             cv::Rect bbox = cv::Rect(normBbox[0] - normBbox[2] / 2,
@@ -437,7 +435,7 @@ std::vector<Detection> YoloV8Detector::runDetection(cv::Mat &image)
             }
             // printf("Bbox rect: %d %d %d %d\n", classDetections[i][index].x, classDetections[i][index].y, classDetections[i][index].width, classDetections[i][index].height);
             // printf("mask rect: %d %d %d %d\n", classDetections[i][index].x + sideBorder, classDetections[i][index].y + topBorder, classDetections[i][index].width, classDetections[i][index].height);
-            cv::Rect detectionRect = cv::Rect(classDetections[i][index].x + sideBorder * 2, classDetections[i][index].y + topBorder * 2, classDetections[i][index].width, classDetections[i][index].height) & cv::Rect(0, 0, image.cols, image.rows);
+            cv::Rect detectionRect = cv::Rect(classDetections[i][index].x + sideBorder, classDetections[i][index].y + topBorder, classDetections[i][index].width, classDetections[i][index].height) & cv::Rect(0, 0, calculatedMask.cols, calculatedMask.rows);
             cv::Rect croppedRect = cv::Rect(classDetections[i][index].x, classDetections[i][index].y, detectionRect.width, detectionRect.height);
             classDetections[i][index] = croppedRect;
             cv::Mat roi = cv::Mat::zeros(calculatedMask.size(), calculatedMask.type());
@@ -445,7 +443,7 @@ std::vector<Detection> YoloV8Detector::runDetection(cv::Mat &image)
 
             calculatedMask.setTo(cv::Scalar(0), roi != 1);
 
-            calculatedMask = calculatedMask(cv::Rect(sideBorder, topBorder * 2, image.cols, image.rows));
+            calculatedMask = calculatedMask(cv::Rect(sideBorder, topBorder, image.cols, image.rows));
 
             // croppedMask(classDetections[i][index]) = calculatedMask(detectionRect);
             cv::cvtColor(calculatedMask * 255, calculatedMask, cv::COLOR_GRAY2BGR);

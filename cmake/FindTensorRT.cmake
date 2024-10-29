@@ -1,5 +1,5 @@
 if (NOT TensorRT_FOUND)
-    set(TensorRT_ROOT /usr/local/cuda/targets/x86_64-linux)
+    set(TensorRT_ROOT /usr)
     set(TR_INFER_LIB libnvinfer.a)
     set(TR_INFER_RT libnvinfer.so)
     set(TR_PARSERS libnvparsers.so)
